@@ -2,8 +2,11 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
+	"mydocker/cgroup_manager"
 	"mydocker/container"
+	"mydocker/subsystems"
 	"os"
+	"strings"
 )
 
 // Run 执行具体 command
@@ -12,11 +15,30 @@ import (
 进程，然后在子进程中，调用/proc/self/exe,也就是调用自己，发送init参数，调用我们写的init方法，
 去初始化容器的一些资源。
 */
-func Run(tty bool, cmd string) {
-	parent := container.NewParentProcess(tty, cmd)
-	if err := parent.Start(); err != nil {
-		log.Error(err)
+func Run(tty bool, comArray []string, res *subsystems.ResourceConfig) {
+	parent, writePipe := container.NewParentProcess(tty)
+	if parent == nil {
+		log.Errorf("New parent process error")
+		return
 	}
+	if err := parent.Start(); err != nil {
+		log.Errorf("Run parent.Start err:%v", err)
+	}
+	// 创建cgroup manager, 并通过调用set和apply设置资源限制并使限制在容器上生效
+	cgroupManager := cgroup_manager.NewCgroupManager("mydocker-cgroup")
+	defer cgroupManager.Destroy()
+	_ = cgroupManager.Set(res)
+	_ = cgroupManager.Apply(parent.Process.Pid, res)
+
+	// 在子进程创建后通过管道来发送参数
+	sendInitCommand(comArray, writePipe)
 	_ = parent.Wait()
-	os.Exit(-1)
+}
+
+// sendInitCommand 通过writePipe将指令发送给子进程
+func sendInitCommand(comArray []string, writePipe *os.File) {
+	command := strings.Join(comArray, " ")
+	log.Infof("command all is %s", command)
+	_, _ = writePipe.WriteString(command)
+	_ = writePipe.Close()
 }
