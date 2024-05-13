@@ -29,6 +29,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset",
 			Usage: "cpuset limit,e.g.: -cpuset 2,4", // 限制进程 cpu 使用率
 		},
+		cli.StringFlag{
+			Name:  "v",
+			Usage: "volume,e.g.: -v /etc/conf:/etc/conf", // 数据卷
+		},
 	},
 	/*
 		这里是run命令执行的真正函数。
@@ -52,8 +56,9 @@ var runCommand = cli.Command{
 			CpuSet:      context.String("cpuset"),
 			CpuCfsQuota: context.Int("cpu"),
 		}
-
-		Run(tty, cmdArray, resConf)
+		log.Info("resConf:", resConf)
+		volume := context.String("v")
+		Run(tty, cmdArray, resConf, volume)
 		return nil
 	},
 }

@@ -15,8 +15,8 @@ import (
 进程，然后在子进程中，调用/proc/self/exe,也就是调用自己，发送init参数，调用我们写的init方法，
 去初始化容器的一些资源。
 */
-func Run(tty bool, comArray []string, res *subsystems.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume string) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -33,6 +33,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig) {
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(comArray, writePipe)
 	_ = parent.Wait()
+	container.DeleteWorkSpace("/home/win233/mydocker/", volume)
 }
 
 // sendInitCommand 通过writePipe将指令发送给子进程

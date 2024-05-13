@@ -36,6 +36,10 @@ func RunContainerInitProcess(command string, args []string) error {
 	if len(cmdArray) == 0 {
 		return errors.New("run container get user command error, cmdArray is nil")
 	}
+
+	// 挂载文件系统
+	setUpMount()
+
 	path, err := exec.LookPath(cmdArray[0])
 	if err != nil {
 		log.Errorf("Exec loop path error %v", err)
