@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"mydocker/assets"
 	"mydocker/constant"
 	"os"
 	"os/exec"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 )
+
+var WorkPath string
 
 // NewParentProcess 启动一个新进程
 /*
@@ -40,7 +43,22 @@ func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
 	//mntURL := "/home/win233/mydocker/merged/"
-	rootPath := "/home/win233/mydocker/"
+	//解压到当前文件夹
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Errorf("Get current dir error %v", err)
+		return nil, nil
+	}
+
+	rootPath := path.Join(pwd, "mydocker-wrok")
+	log.Infof("the work dir is %s", rootPath)
+	err, extractFile := assets.ExtractBusybox(rootPath)
+	if err != nil {
+		log.Errorf("Extract busybox err %v", err)
+		return nil, nil
+	}
+	log.Infoln("extractFile:", extractFile)
+
 	NewWorkSpace(rootPath, volume)
 	cmd.Dir = path.Join(rootPath, "merged")
 	return cmd, writePipe
@@ -51,6 +69,7 @@ func NewWorkSpace(rootPath string, volumePath string) {
 	createLower(rootPath)
 	createDirs(rootPath)
 	mountOverlayFS(rootPath)
+	WorkPath = rootPath
 
 	//处理volume
 	if volumePath != "" {
@@ -102,23 +121,25 @@ func volumeExtract(volume string) (sourcePath, destinationPath string, err error
 }
 
 // createLower 将busybox作为overlayfs的lower层
-func createLower(rootURL string) {
+func createLower(rootPath string) {
 	// 把busybox作为overlayfs中的lower层
-	busyboxURL := rootURL + "busybox/"
-	busyboxTarURL := rootURL + "busybox.tar"
+	busyboxPath := path.Join(rootPath, "busybox")
+	busyboxTarPath := path.Join(rootPath, "busybox.tar")
+	log.Infof("busybox url is %s", busyboxPath)
+	log.Infof("busybox tar url is %s", busyboxTarPath)
 	// 检查是否已经存在busybox文件夹
-	exist, err := PathExists(busyboxURL)
+	exist, err := PathExists(busyboxPath)
 	if err != nil {
-		log.Infof("Fail to judge whether dir %s exists. %v", busyboxURL, err)
+		log.Infof("Fail to judge whether dir %s exists. %v", busyboxPath, err)
 	}
 	// 不存在则创建目录并将busybox.tar解压到busybox文件夹中
 	if !exist {
-		if err := os.Mkdir(busyboxURL, 0777); err != nil {
-			log.Errorf("Mkdir dir %s error. %v", busyboxURL, err)
+		if err := os.Mkdir(busyboxPath, 0777); err != nil {
+			log.Errorf("Mkdir dir %s error. %v", busyboxPath, err)
 		}
 		log.Infoln("start extract files...")
-		if _, err := exec.Command("tar", "-xvf", busyboxTarURL, "-C", busyboxURL).CombinedOutput(); err != nil {
-			log.Errorf("Untar dir %s error %v", busyboxURL, err)
+		if _, err := exec.Command("tar", "-xvf", busyboxTarPath, "-C", busyboxPath).CombinedOutput(); err != nil {
+			log.Errorf("Untar dir %s error %v", busyboxPath, err)
 		}
 	}
 }

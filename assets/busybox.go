@@ -13,20 +13,15 @@ import (
 //go:embed busybox.tar
 var embedFS embed.FS
 
-func ExtractBusybox(targetDir string) error {
+// ExtractBusybox 返回值为工作目录
+func ExtractBusybox(targetDir string) (error, string) {
 	sourceFile := "busybox.tar"
 	log.Info("Extracting busybox to ", targetDir)
 	err := embed_util.ExtractEmbeddedFiles(embedFS, sourceFile, targetDir)
 	if err != nil {
-		return err
+		return err, ""
 	}
-	//执行解压
-	err = UntarFile(filepath.Join(targetDir, sourceFile), targetDir)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return nil, filepath.Join(targetDir, sourceFile)
 }
 
 func GetHomeDir() string {
@@ -40,7 +35,7 @@ func GetHomeDir() string {
 // UntarFile 解压tar文件到指定目录
 func UntarFile(tarFile, targetDir string) error {
 	// 构建 tar 命令
-	cmd := exec.Command("tar", "-xvf", tarFile, "-C", targetDir)
+	cmd := exec.Command("tar", "-xf", tarFile, "-C", targetDir)
 
 	// 捕获命令的标准输出和错误输出
 	cmd.Stdout = os.Stdout

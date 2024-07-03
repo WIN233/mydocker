@@ -33,7 +33,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume str
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(comArray, writePipe)
 	_ = parent.Wait()
-	container.DeleteWorkSpace("/home/win233/mydocker/", volume)
+	container.DeleteWorkSpace(container.WorkPath, volume)
 }
 
 // sendInitCommand 通过writePipe将指令发送给子进程
