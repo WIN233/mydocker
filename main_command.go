@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"mydocker/commit"
 	"mydocker/container"
 	"mydocker/subsystems"
 )
@@ -76,5 +77,21 @@ var initCommand = cli.Command{
 		log.Infof("command: %s", cmd)
 		err := container.RunContainerInitProcess(cmd, nil)
 		return err
+	},
+}
+
+var commitCommand = cli.Command{
+	Name:  "commit",
+	Usage: "Commit container to image",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("missing image name")
+		}
+		imageName := context.Args().Get(0)
+		err := commit.CommitContainer(imageName)
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
