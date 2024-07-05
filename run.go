@@ -27,13 +27,16 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume str
 	// 创建cgroup manager, 并通过调用set和apply设置资源限制并使限制在容器上生效
 	cgroupManager := cgroup_manager.NewCgroupManager("mydocker-cgroup")
 	defer cgroupManager.Destroy()
+	log.Infof("start set cgroup")
 	_ = cgroupManager.Set(res)
 	_ = cgroupManager.Apply(parent.Process.Pid, res)
 
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(comArray, writePipe)
-	_ = parent.Wait()
-	container.DeleteWorkSpace(container.WorkPath, volume)
+	if tty { // 如果是tty，那么父进程等待，就是前台运行，否则就是跳过，实现后台运行
+		_ = parent.Wait()
+		container.DeleteWorkSpace(container.WorkPath, volume)
+	}
 }
 
 // sendInitCommand 通过writePipe将指令发送给子进程
