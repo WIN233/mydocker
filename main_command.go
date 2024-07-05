@@ -18,6 +18,10 @@ var runCommand = cli.Command{
 			Name:  "it", // 简单起见，这里把 -i 和 -t 参数合并成一个
 			Usage: "enable tty",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "container name",
+		},
 		cli.BoolFlag{
 			Name:  "d",
 			Usage: "detach container",
@@ -68,7 +72,9 @@ var runCommand = cli.Command{
 			CpuCfsQuota: context.Int("cpu"),
 		}
 		volume := context.String("v")
-		Run(tty, cmdArray, resConf, volume)
+		// 把namne传递给Run方法
+		containerName := context.String("name")
+		Run(tty, cmdArray, resConf, volume, containerName)
 		return nil
 	},
 }
@@ -101,6 +107,15 @@ var commitCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+		return nil
+	},
+}
+
+var listCommand = cli.Command{
+	Name:  "ps",
+	Usage: "list all the containers",
+	Action: func(context *cli.Context) error {
+		container.ListContainers()
 		return nil
 	},
 }
